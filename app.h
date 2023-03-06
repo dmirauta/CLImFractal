@@ -3,6 +3,9 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
+#include <chrono>
+using namespace std::chrono;
+
 class Texture
 // based on snippets on https://github-wiki-see.page/m/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 {
@@ -40,8 +43,9 @@ class App
         int N;
         int M;
         static std::string title;
-        Texture display;
+        Texture viewport;
         unsigned char * pix;
+        time_point<high_resolution_clock> start;
 
         App();
         ~App();
