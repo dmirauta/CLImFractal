@@ -1,12 +1,13 @@
 #pragma once
 
+#include <iostream>
 #include <GLFW/glfw3.h>
 
 class Texture
 // based on snippets on https://github-wiki-see.page/m/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 {
     public:
-        GLuint tex_id;
+        GLuint tex_id = 0;
 
         Texture()
         {
@@ -28,7 +29,7 @@ class Texture
             #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
                 glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
             #endif
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data); // can only set once? or at least will require setting to same size?
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data); // can only set once? or at least will require setting to same size?
         }
 
 };
@@ -38,6 +39,7 @@ class App
     public:
         int N;
         int M;
+        static std::string title;
         Texture display;
         unsigned char * pix;
 
