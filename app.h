@@ -60,7 +60,8 @@ class App
         Complex viewport_center = {-0.75, 0};
         Complex viewport_deltas = {1.25, 1};
         int MAXITER;
-        float MAXITERpow = 2;
+        float MAXITERpow = 2, cre=-0.85, cim=0.6;
+        bool mandel = true;
 
         App();
         ~App();

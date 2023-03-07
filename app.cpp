@@ -39,7 +39,8 @@ App::~App()
 
 void App::compute_begin()
 {
-    (*param)[0].mandel = 1;
+    (*param)[0].mandel = mandel ? 1 : 0;
+    (*param)[0].c = {(FPN) cre, (FPN) cim};
     (*param)[0].view_rect = {viewport_center.re-viewport_deltas.re,
                              viewport_center.re+viewport_deltas.re,
                              viewport_center.im-viewport_deltas.im,
@@ -102,11 +103,11 @@ void App::render()
         // Zoom
         if (io.MouseWheel > 0)
         {
-            viewport_deltas.re /= 1.05;
-            viewport_deltas.im /= 1.05;
+            viewport_deltas.re /= 1.07;
+            viewport_deltas.im /= 1.07;
         } else if (io.MouseWheel < 0) {
-            viewport_deltas.re *= 1.05;
-            viewport_deltas.im *= 1.05;
+            viewport_deltas.re *= 1.07;
+            viewport_deltas.im *= 1.07;
         }
 
         ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
@@ -121,6 +122,9 @@ void App::render()
         ImGui::Text("Zoom: Mouse wheel");
 
         ImGui::Text("\nParams:");
+        ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel);
+        ImGui::SliderFloat("(for Julia mode) CRE", &cre, -2, 2);
+        ImGui::SliderFloat("(for Julia mode) CIM", &cim, -2, 2);
         ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
         MAXITER = pow(10, MAXITERpow);
         ImGui::Text("MAXITER: %d", MAXITER);
