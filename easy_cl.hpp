@@ -77,6 +77,8 @@ class AbstractSynchronisedArray
         virtual void to_gpu(cl::CommandQueue &queue) = 0;
 
         virtual void from_gpu(cl::CommandQueue &queue) = 0;
+        
+        // virtual ~AbstractSynchronisedArray() = 0; // not sure why I cant do this, don't delete base pointer...
 
 };
 

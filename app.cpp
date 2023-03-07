@@ -48,13 +48,13 @@ void App::compute_begin()
     (*param)[0].MAXITER = MAXITER;
 
     // Run kernel(s)
-    (*param)[0].PROXTYPE = 1;
+    (*param)[0].PROXTYPE = 3;
     ecl.apply_kernel("min_prox", *prox1, *param);
     
-    (*param)[0].PROXTYPE = 2;
+    (*param)[0].PROXTYPE = 5;
     ecl.apply_kernel("min_prox", *prox2, *param);
     
-    (*param)[0].PROXTYPE = 4;
+    (*param)[0].PROXTYPE = 6;
     ecl.apply_kernel("min_prox", *prox3, *param);
 
     // ecl.queue.finish();
