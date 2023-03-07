@@ -40,20 +40,26 @@ App::~App()
 void App::compute_begin()
 {
     (*param)[0].mandel = 1;
-    (*param)[0].view_rect = {re0, re1, im0, im1};
+    (*param)[0].view_rect = {viewport_center.re-viewport_deltas.re,
+                             viewport_center.re+viewport_deltas.re,
+                             viewport_center.im-viewport_deltas.im,
+                             viewport_center.im+viewport_deltas.im};
     (*param)[0].MAXITER = MAXITER;
 
     // Run kernel(s)
     (*param)[0].PROXTYPE = 1;
     ecl.apply_kernel("min_prox", *prox1, *param);
-    // ecl.apply_kernel("apply_log_fpn", prox1);
-
+    
     (*param)[0].PROXTYPE = 2;
     ecl.apply_kernel("min_prox", *prox2, *param);
-    // ecl.apply_kernel("apply_log_fpn", prox2);
-
+    
     (*param)[0].PROXTYPE = 4;
     ecl.apply_kernel("min_prox", *prox3, *param);
+
+    // ecl.queue.finish();
+    // ecl.apply_kernel("apply_log_fpn", *prox1); // this needs read write access...
+    // ecl.apply_kernel("apply_log_fpn", *prox2);
+    // ecl.apply_kernel("apply_log_fpn", *prox3);
 
     double s;
     for (int i=0; i<N*M; i++)
@@ -72,30 +78,54 @@ void App::compute_join()
 
 void App::render()
 {
-    //ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
 
     compute_join(); // should probably be outside of rendering code, but would come immediately before and after anyway, so keeping inside own scripts (main is from imgui examples)
 
     viewport.set(pix, M, N);
 
     ImGui::Begin("Viewport");
-    ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
-    ImGui::Image((void*)(intptr_t)viewport.tex_id, ImVec2(M, N));
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        // Pan
+        float deltaX = 0, deltaY = 0;
+        if(ImGui::IsWindowHovered() && ImGui::IsMousePosValid() && ImGui::IsMouseDown(1))
+        {
+            deltaX = 2*io.MouseDelta.x/(float) N;
+            deltaY = 2*io.MouseDelta.y/(float) M;
+            viewport_center.re -= viewport_deltas.re * deltaX;
+            viewport_center.im -= viewport_deltas.im * deltaY;
+            // ImGui::Text("Mouse delta (screen fraction): (%f, %f)", deltaX, deltaY);
+        } 
+
+        // Zoom
+        if (io.MouseWheel > 0)
+        {
+            viewport_deltas.re /= 1.05;
+            viewport_deltas.im /= 1.05;
+        } else if (io.MouseWheel < 0) {
+            viewport_deltas.re *= 1.05;
+            viewport_deltas.im *= 1.05;
+        }
+
+        ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
+        ImGui::Image((void*)(intptr_t)viewport.tex_id, ImVec2(M, N));
+
     ImGui::End();
 
-    ImGui::Begin("Params");
-    ImGui::SliderFloat("Re0", &re0, -2.0f, 0.5f);
-    ImGui::SliderFloat("Re1", &re1, -2.0f, 0.5f);
-    ImGui::SliderFloat("Im0", &im0, -1.0f, 1.0f);
-    ImGui::SliderFloat("Im1", &im1, -1.0f, 1.0f);
+    ImGui::Begin("Controlls");
 
-    ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
-    MAXITER = pow(10, MAXITERpow);
-    ImGui::Text("MAXITER: %d", MAXITER);
+        ImGui::Text("Inputs:");
+        ImGui::Text("Pan: Right click and drag in viewport");
+        ImGui::Text("Zoom: Mouse wheel");
 
+        ImGui::Text("\nParams:");
+        ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
+        MAXITER = pow(10, MAXITERpow);
+        ImGui::Text("MAXITER: %d", MAXITER);
     ImGui::End();
 
-    
     compute_begin(); // start computing next frame
 
 }

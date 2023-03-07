@@ -57,7 +57,8 @@ class App
         SynchronisedArray<double>  *prox3;
         SynchronisedArray<MPParam> *param;
 
-        float re0=-2.0f, re1=0.5f, im0=-1.0f, im1=1.0f;
+        Complex viewport_center = {-0.75, 0};
+        Complex viewport_deltas = {1.25, 1};
         int MAXITER;
         float MAXITERpow = 2;
 
