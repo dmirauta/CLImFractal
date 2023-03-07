@@ -190,6 +190,7 @@ class EasyCL
         std::map<std::string, cl::Kernel> kernels;
 
         bool _verbose;
+        bool no_block = false;
 
         EasyCL(bool verbose=false)
         {
@@ -297,7 +298,8 @@ class EasyCL
 
             from_gpu(queue, first_arr, arrs...);
 
-            queue.finish(); // blocking
+            if (!no_block)
+                queue.finish();
         }
 
 

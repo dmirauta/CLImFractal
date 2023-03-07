@@ -16,11 +16,14 @@ App::App()
     vector<string> kernel_names{"escape_iter", "min_prox", "orbit_trap", "map_img", "apply_log_int", "apply_log_fpn"};
     string ocl_include_path = filesystem::current_path(); // include path required for cl file importing own deps
     ecl.load_kernels(source_files, kernel_names, "-I "+ocl_include_path);
+    ecl.no_block = true;
 
     prox1 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     prox2 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     prox3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     param = new SynchronisedArray<MPParam>(ecl.context);
+
+    compute_begin(); // start computing first frame
 
 }
 
@@ -33,13 +36,11 @@ App::~App()
     delete param;
 }
 
-void App::render()
+void App::compute_begin()
 {
-    //ImGui::ShowDemoWindow();
-
     (*param)[0].mandel = 1;
     (*param)[0].view_rect = {re0, re1, im0, im1};
-    (*param)[0].MAXITER = 100;
+    (*param)[0].MAXITER = MAXITER;
 
     // Run kernel(s)
     (*param)[0].PROXTYPE = 1;
@@ -61,6 +62,18 @@ void App::render()
         pix[3*i+1] = 255*(prox2->cpu_buff[i]/s);
         pix[3*i+2] = 255*(prox3->cpu_buff[i]/s);
     }
+}
+
+void App::compute_join()
+{
+    ecl.queue.finish();
+}
+
+void App::render()
+{
+    //ImGui::ShowDemoWindow();
+
+    compute_join(); // should probably be outside of rendering code, but would come immediately before and after anyway, so keeping inside own scripts (main is from imgui examples)
 
     viewport.set(pix, M, N);
 
@@ -74,6 +87,9 @@ void App::render()
     ImGui::SliderFloat("Re1", &re1, -2.0f, 0.5f);
     ImGui::SliderFloat("Im0", &im0, -1.0f, 1.0f);
     ImGui::SliderFloat("Im1", &im1, -1.0f, 1.0f);
+    ImGui::SliderInt("MAXITER", &MAXITER, 1, 10000);
     ImGui::End();
+
+    compute_begin(); // start computing next frame
 
 }
