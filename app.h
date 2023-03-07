@@ -6,6 +6,11 @@
 #include <chrono>
 using namespace std::chrono;
 
+#include "easy_cl.hpp"
+#include "mandelstructs.h"
+
+using namespace std;
+
 class Texture
 // based on snippets on https://github-wiki-see.page/m/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples
 {
@@ -28,7 +33,6 @@ class Texture
         void set(unsigned char* image_data, int image_width, int image_height)
         // Upload pixels into texture
         {
-            
             #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
                 glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
             #endif
@@ -42,10 +46,18 @@ class App
     public:
         int N;
         int M;
-        static std::string title;
+        static string title;
         Texture viewport;
         unsigned char * pix;
         time_point<high_resolution_clock> start;
+
+        EasyCL ecl;
+        SynchronisedArray<double>  *prox1;
+        SynchronisedArray<double>  *prox2;
+        SynchronisedArray<double>  *prox3;
+        SynchronisedArray<MPParam> *param;
+
+        float re0=-2.0f, re1=0.5f, im0=-1.0f, im1=1.0f;
 
         App();
         ~App();

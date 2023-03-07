@@ -1,22 +1,7 @@
+#include <filesystem>
+
 #include "app.h"
 #include "imgui.h"
-
-void make_img(unsigned char* pix, int N, int M, bool flip)
-{
-    int k=0;
-    for (int i=0; i<M; i++)
-    {
-        bool set_blue = flip ? i<M/2 : i>M/2;
-        for (int j=0; j<N; j++)
-        {
-            k = i*N+j;
-            pix[3*k]   = 255*set_blue;
-            pix[3*k+1] = 0;
-            pix[3*k+2] = 255*(1-set_blue);
-
-        }
-    }
-}
 
 std::string App::title = "Testing";
 
@@ -26,24 +11,69 @@ App::App()
     M = 800;
     pix = new unsigned char[N*M*3];
     start = high_resolution_clock::now();
+
+    vector<string> source_files{"mandel.cl"}; // this time importing its own deps
+    vector<string> kernel_names{"escape_iter", "min_prox", "orbit_trap", "map_img", "apply_log_int", "apply_log_fpn"};
+    string ocl_include_path = filesystem::current_path(); // include path required for cl file importing own deps
+    ecl.load_kernels(source_files, kernel_names, "-I "+ocl_include_path);
+
+    prox1 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+    prox2 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+    prox3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+    param = new SynchronisedArray<MPParam>(ecl.context);
+
 }
 
 App::~App()
 {
     delete [] pix;
+    delete prox1;
+    delete prox2;
+    delete prox3;
+    delete param;
 }
 
 void App::render()
 {
     //ImGui::ShowDemoWindow();
 
-    auto now = high_resolution_clock::now();
-    int seconds_since_start = duration_cast<seconds>(now - start).count();
-    make_img(pix, N, M, seconds_since_start%2);
+    (*param)[0].mandel = 1;
+    (*param)[0].view_rect = {re0, re1, im0, im1};
+    (*param)[0].MAXITER = 100;
+
+    // Run kernel(s)
+    (*param)[0].PROXTYPE = 1;
+    ecl.apply_kernel("min_prox", *prox1, *param);
+    // ecl.apply_kernel("apply_log_fpn", prox1);
+
+    (*param)[0].PROXTYPE = 2;
+    ecl.apply_kernel("min_prox", *prox2, *param);
+    // ecl.apply_kernel("apply_log_fpn", prox2);
+
+    (*param)[0].PROXTYPE = 4;
+    ecl.apply_kernel("min_prox", *prox3, *param);
+
+    double s;
+    for (int i=0; i<N*M; i++)
+    {
+        s = prox1->cpu_buff[i] + prox2->cpu_buff[i] + prox3->cpu_buff[i];
+        pix[3*i]   = 255*(prox1->cpu_buff[i]/s);
+        pix[3*i+1] = 255*(prox2->cpu_buff[i]/s);
+        pix[3*i+2] = 255*(prox3->cpu_buff[i]/s);
+    }
+
     viewport.set(pix, M, N);
 
     ImGui::Begin("Viewport");
-    ImGui::Text("FPS %f", ImGui::GetIO().Framerate);
+    ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
     ImGui::Image((void*)(intptr_t)viewport.tex_id, ImVec2(M, N));
     ImGui::End();
+
+    ImGui::Begin("Params");
+    ImGui::SliderFloat("Re0", &re0, -2.0f, 0.5f);
+    ImGui::SliderFloat("Re1", &re1, -2.0f, 0.5f);
+    ImGui::SliderFloat("Im0", &im0, -1.0f, 1.0f);
+    ImGui::SliderFloat("Im1", &im1, -1.0f, 1.0f);
+    ImGui::End();
+
 }
