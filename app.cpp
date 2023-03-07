@@ -4,7 +4,7 @@
 #include "app.h"
 #include "imgui.h"
 
-std::string App::title = "Testing";
+std::string App::title = "CLImFractal";
 
 App::App()
 {
@@ -111,6 +111,8 @@ void App::render()
         }
 
         ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
+        ImGui::Text("Center: (%lg) + (%lg)i", viewport_center.re, viewport_center.im);
+        ImGui::Text("Box dims: (%lg) x (%lg)", 2*viewport_deltas.re, 2*viewport_deltas.im);
         ImGui::Image((void*)(intptr_t)viewport.tex_id, ImVec2(M, N));
 
     ImGui::End();
@@ -123,8 +125,14 @@ void App::render()
 
         ImGui::Text("\nParams:");
         ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel);
-        ImGui::SliderFloat("(for Julia mode) CRE", &cre, -2, 2);
-        ImGui::SliderFloat("(for Julia mode) CIM", &cim, -2, 2);
+
+        if (!mandel)
+        {
+            ImGui::Text("Julia constant:");
+            ImGui::SliderFloat("CRE", &cre, -2, 2);
+            ImGui::SliderFloat("CIM", &cim, -2, 2);
+        }
+
         ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
         MAXITER = pow(10, MAXITERpow);
         ImGui::Text("MAXITER: %d", MAXITER);
