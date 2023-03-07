@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <cmath>
 
 #include "app.h"
 #include "imgui.h"
@@ -87,9 +88,14 @@ void App::render()
     ImGui::SliderFloat("Re1", &re1, -2.0f, 0.5f);
     ImGui::SliderFloat("Im0", &im0, -1.0f, 1.0f);
     ImGui::SliderFloat("Im1", &im1, -1.0f, 1.0f);
-    ImGui::SliderInt("MAXITER", &MAXITER, 1, 10000);
+
+    ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
+    MAXITER = pow(10, MAXITERpow);
+    ImGui::Text("MAXITER: %d", MAXITER);
+
     ImGui::End();
 
+    
     compute_begin(); // start computing next frame
 
 }

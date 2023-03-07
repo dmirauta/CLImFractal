@@ -58,7 +58,8 @@ class App
         SynchronisedArray<MPParam> *param;
 
         float re0=-2.0f, re1=0.5f, im0=-1.0f, im1=1.0f;
-        int MAXITER = 100;
+        int MAXITER;
+        float MAXITERpow = 2;
 
         App();
         ~App();
