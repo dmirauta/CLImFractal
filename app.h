@@ -3,8 +3,8 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
-#include <chrono>
-using namespace std::chrono;
+// #include <chrono> // for timing
+// using namespace std::chrono;
 
 #include "easy_cl.hpp"
 #include "mandelstructs.h"
@@ -49,7 +49,6 @@ class App
         static string title;
         Texture viewport;
         unsigned char * pix;
-        time_point<high_resolution_clock> start;
 
         EasyCL ecl;
         SynchronisedArray<double>  *prox1;

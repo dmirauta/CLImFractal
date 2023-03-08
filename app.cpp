@@ -11,7 +11,6 @@ App::App()
     N = 600;
     M = 800;
     pix = new unsigned char[N*M*3];
-    start = high_resolution_clock::now();
 
     vector<string> source_files{"mandel.cl"}; // this time importing its own deps
     vector<string> kernel_names{"escape_iter", "min_prox", "orbit_trap", "map_img", "apply_log_int", "apply_log_fpn"};
@@ -44,19 +43,19 @@ void App::compute_begin()
         (*param)[0].mandel = mandel ? 1 : 0;
         (*param)[0].c = {(FPN) cre, (FPN) cim};
         (*param)[0].view_rect = {viewport_center.re-viewport_deltas.re,
-                                viewport_center.re+viewport_deltas.re,
-                                viewport_center.im-viewport_deltas.im,
-                                viewport_center.im+viewport_deltas.im};
+                                 viewport_center.re+viewport_deltas.re,
+                                 viewport_center.im-viewport_deltas.im,
+                                 viewport_center.im+viewport_deltas.im};
         (*param)[0].MAXITER = MAXITER;
 
         // Run kernel(s)
-        (*param)[0].PROXTYPE = 3;
+        (*param)[0].PROXTYPE = 3; // 011
         ecl.apply_kernel("min_prox", *prox1, *param);
         
-        (*param)[0].PROXTYPE = 5;
+        (*param)[0].PROXTYPE = 5; // 101
         ecl.apply_kernel("min_prox", *prox2, *param);
         
-        (*param)[0].PROXTYPE = 6;
+        (*param)[0].PROXTYPE = 6; // 110
         ecl.apply_kernel("min_prox", *prox3, *param);
 
         // ecl.queue.finish();
@@ -159,6 +158,6 @@ void App::render()
 
     ImGui::End();
 
-    compute_begin(); // start computing next frame
+    compute_begin(); // start computing next frame // could interfere with subsequent OpenGL calls?
 
 }
