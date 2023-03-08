@@ -63,6 +63,9 @@ class App
         float MAXITERpow = 2, cre=-0.85, cim=0.6;
         bool mandel = true;
 
+        bool compute_enabled = false;
+        bool running_gpu_job = false;
+
         App();
         ~App();
 

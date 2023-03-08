@@ -24,8 +24,6 @@ App::App()
     prox3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     param = new SynchronisedArray<MPParam>(ecl.context);
 
-    compute_begin(); // start computing first frame
-
 }
 
 App::~App()
@@ -39,42 +37,52 @@ App::~App()
 
 void App::compute_begin()
 {
-    (*param)[0].mandel = mandel ? 1 : 0;
-    (*param)[0].c = {(FPN) cre, (FPN) cim};
-    (*param)[0].view_rect = {viewport_center.re-viewport_deltas.re,
-                             viewport_center.re+viewport_deltas.re,
-                             viewport_center.im-viewport_deltas.im,
-                             viewport_center.im+viewport_deltas.im};
-    (*param)[0].MAXITER = MAXITER;
-
-    // Run kernel(s)
-    (*param)[0].PROXTYPE = 3;
-    ecl.apply_kernel("min_prox", *prox1, *param);
-    
-    (*param)[0].PROXTYPE = 5;
-    ecl.apply_kernel("min_prox", *prox2, *param);
-    
-    (*param)[0].PROXTYPE = 6;
-    ecl.apply_kernel("min_prox", *prox3, *param);
-
-    // ecl.queue.finish();
-    // ecl.apply_kernel("apply_log_fpn", *prox1); // this needs read write access...
-    // ecl.apply_kernel("apply_log_fpn", *prox2);
-    // ecl.apply_kernel("apply_log_fpn", *prox3);
-
-    double s;
-    for (int i=0; i<N*M; i++)
+    if (compute_enabled)
     {
-        s = prox1->cpu_buff[i] + prox2->cpu_buff[i] + prox3->cpu_buff[i];
-        pix[3*i]   = 255*(prox1->cpu_buff[i]/s);
-        pix[3*i+1] = 255*(prox2->cpu_buff[i]/s);
-        pix[3*i+2] = 255*(prox3->cpu_buff[i]/s);
+        running_gpu_job = true;
+
+        (*param)[0].mandel = mandel ? 1 : 0;
+        (*param)[0].c = {(FPN) cre, (FPN) cim};
+        (*param)[0].view_rect = {viewport_center.re-viewport_deltas.re,
+                                viewport_center.re+viewport_deltas.re,
+                                viewport_center.im-viewport_deltas.im,
+                                viewport_center.im+viewport_deltas.im};
+        (*param)[0].MAXITER = MAXITER;
+
+        // Run kernel(s)
+        (*param)[0].PROXTYPE = 3;
+        ecl.apply_kernel("min_prox", *prox1, *param);
+        
+        (*param)[0].PROXTYPE = 5;
+        ecl.apply_kernel("min_prox", *prox2, *param);
+        
+        (*param)[0].PROXTYPE = 6;
+        ecl.apply_kernel("min_prox", *prox3, *param);
+
+        // ecl.queue.finish();
+        // ecl.apply_kernel("apply_log_fpn", *prox1); // this needs read write access...
+        // ecl.apply_kernel("apply_log_fpn", *prox2);
+        // ecl.apply_kernel("apply_log_fpn", *prox3);
+
+        double s;
+        for (int i=0; i<N*M; i++)
+        {
+            s = prox1->cpu_buff[i] + prox2->cpu_buff[i] + prox3->cpu_buff[i];
+            pix[3*i]   = 255*(prox1->cpu_buff[i]/s);
+            pix[3*i+1] = 255*(prox2->cpu_buff[i]/s);
+            pix[3*i+2] = 255*(prox3->cpu_buff[i]/s);
+        }
     }
+
 }
 
 void App::compute_join()
 {
-    ecl.queue.finish();
+    if (running_gpu_job)
+    {
+        ecl.queue.finish();
+        running_gpu_job = false;
+    }       
 }
 
 void App::render()
@@ -119,11 +127,14 @@ void App::render()
 
     ImGui::Begin("Controlls");
 
+        if (ImGui::Button("Toggle compute active"))
+            compute_enabled = !compute_enabled;
+
         ImGui::Text("Inputs:");
         ImGui::Text("Pan: Right click and drag in viewport");
         ImGui::Text("Zoom: Mouse wheel");
 
-        ImGui::Text("\nParams:");
+        ImGui::Text("\nGeneral Params:");
         ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel);
 
         if (!mandel)
@@ -136,6 +147,16 @@ void App::render()
         ImGui::SliderFloat("log10 MAXITER", &MAXITERpow, 0, 4);
         MAXITER = pow(10, MAXITERpow);
         ImGui::Text("MAXITER: %d", MAXITER);
+
+        ImGui::Text("\nMode:");
+        static int mode = 0;
+        ImGui::RadioButton("Single field", &mode, 0);
+        ImGui::RadioButton("Dual field - Image map", &mode, 1);
+        ImGui::RadioButton("Triple field - RGB", &mode, 2);
+
+        ImGui::Text("\nMode Params:");
+
+
     ImGui::End();
 
     compute_begin(); // start computing next frame
