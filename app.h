@@ -30,7 +30,7 @@ class Texture
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
         }
 
-        void set(unsigned char* image_data, int image_width, int image_height)
+        void set(void* image_data, int image_width, int image_height)
         // Upload pixels into texture
         {
             #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
@@ -41,24 +41,29 @@ class Texture
 
 };
 
+enum ComputeMode { SingleField = 0, DualField = 1, TriField = 2 };
+
 class App 
 {
     public:
         int N;
         int M;
         static string title;
+
         Texture viewport;
-        unsigned char * pix;
+        // unsigned char * pix;
 
         EasyCL ecl;
         SynchronisedArray<double>  *prox1;
         SynchronisedArray<double>  *prox2;
         SynchronisedArray<double>  *prox3;
-        SynchronisedArray<MPParam> *param;
+        SynchronisedArray<FParam>  *param;
+        SynchronisedArray<Pixel>   *pix;
 
         Complex viewport_center = {-0.75, 0};
         Complex viewport_deltas = {1.25, 1};
         int MAXITER;
+        int compute_mode = ComputeMode::TriField;
         float MAXITERpow = 2, cre=-0.85, cim=0.6;
         bool mandel = true;
 
@@ -68,7 +73,15 @@ class App
         App();
         ~App();
 
-        void compute_begin();
+        // job types
+        void min_prox(SynchronisedArray<double> *prox, int PROXTYPE);
+        void escape_iter(SynchronisedArray<double> *prox);
+        void fields_to_RGB(bool normalise);
+        void map_sines(FPN f1, FPN f2, FPN f3);
+
         void compute_join();
         void render();
+        void show_viewport();
+        void controlls_tab();
+        void handle_field(string field_name, SynchronisedArray<double> *prox, int *field, int *proxtype);
 };

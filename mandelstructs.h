@@ -22,39 +22,21 @@ typedef struct Pixel {
    unsigned char b;
 } Pixel_t;
 
-typedef struct EIParam {
+typedef struct FParam {
 // General fract iter params
     int            mandel; // mandel or julia
     Complex_t      c;      // not given when mandel selected
     Box_t          view_rect;
-
-// escape iter param
     int            MAXITER;
-} EIParam_t;
-
-typedef struct MPParam {
-// General fract iter params
-    int            mandel; // mandel or julia
-    Complex_t      c;      // not given when mandel selected
-    Box_t          view_rect;
-
-// min prox param
-    int           MAXITER;
-    int           PROXTYPE;
-} MPParam_t;
-
-typedef struct OTParam {
-// General fract iter params
-    int            mandel; // mandel or julia
-    Complex_t      c;      // not given when mandel selected
-    Box_t          view_rect;
-
-// orbit trap param
-    Box_t      trap;
-    int        MAXITER;
-} OTParam_t;
+} FParam_t;
 
 typedef struct ImDims {
     int        imH;
     int        imW;
 } ImDims_t;
+
+typedef struct Freqs {
+    FPN f1;
+    FPN f2;
+    FPN f3;
+} Freqs_t;
