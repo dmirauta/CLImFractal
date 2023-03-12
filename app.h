@@ -63,7 +63,7 @@ class App
         Complex viewport_center = {-0.75, 0};
         Complex viewport_deltas = {1.25, 1};
         int MAXITER;
-        int compute_mode = ComputeMode::TriField;
+        int compute_mode = ComputeMode::SingleField;
         float MAXITERpow = 2, cre=-0.85, cim=0.6;
         bool mandel = true;
 
@@ -76,8 +76,10 @@ class App
         // job types
         void min_prox(SynchronisedArray<double> *prox, int PROXTYPE);
         void escape_iter(SynchronisedArray<double> *prox);
+        void orbit_trap(SynchronisedArray<double> *prox, FPN bb, FPN bt, FPN bl, FPN br, int real);
         void fields_to_RGB(bool normalise);
         void map_sines(FPN f1, FPN f2, FPN f3);
+        void map_img();
 
         void compute_join();
         void render();

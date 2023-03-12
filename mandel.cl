@@ -86,6 +86,40 @@ __kernel void orbit_trap(__global Complex_t *res_g,
     res_g[i*M+j] = _orbit_trap(p, _c, *trap, param->MAXITER);
 }
 
+__kernel void orbit_trap_re(__global FPN       *res_g,
+                            __global FParam_t  *param,
+                            __global Box_t     *trap)
+{
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    int N = get_global_size(0);
+    int M = get_global_size(1);
+
+    Complex_t p = {param->view_rect.left + j*(param->view_rect.right-param->view_rect.left)/M,
+                   param->view_rect.bot  + i*(param->view_rect.top  -param->view_rect.bot )/N};
+
+    Complex_t _c = param->mandel ? p : param->c;
+
+    res_g[i*M+j] = _orbit_trap(p, _c, *trap, param->MAXITER).re;
+}
+
+__kernel void orbit_trap_im(__global FPN       *res_g,
+                            __global FParam_t  *param,
+                            __global Box_t     *trap)
+{
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    int N = get_global_size(0);
+    int M = get_global_size(1);
+
+    Complex_t p = {param->view_rect.left + j*(param->view_rect.right-param->view_rect.left)/M,
+                   param->view_rect.bot  + i*(param->view_rect.top  -param->view_rect.bot )/N};
+
+    Complex_t _c = param->mandel ? p : param->c;
+
+    res_g[i*M+j] = _orbit_trap(p, _c, *trap, param->MAXITER).im;
+}
+
 __kernel void map_img   (__global Complex_t *res_g, // result of orbit trap
                          __global Pixel_t   *sim_g, // sample image
                          __global Pixel_t   *mim_g, // mapped image
@@ -98,6 +132,24 @@ __kernel void map_img   (__global Complex_t *res_g, // result of orbit trap
 
     int _i = (int) ( ((float) (dims->imH-1)) * res_g[i*M+j].im );
     int _j = (int) ( ((float) (dims->imW-1)) * res_g[i*M+j].re );
+
+    mim_g[i*M+j] = sim_g[_i*dims->imW + _j];
+
+}
+
+__kernel void map_img2  (__global FPN     *res1_g,
+                         __global FPN     *res2_g,
+                         __global Pixel_t   *sim_g, // sample image
+                         __global Pixel_t   *mim_g, // mapped image
+                         __global ImDims_t  *dims)
+{
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+    int N = get_global_size(0);
+    int M = get_global_size(1);
+
+    int _i = (int) ( ((float) (dims->imH-1)) * res1_g[i*M+j] );
+    int _j = (int) ( ((float) (dims->imW-1)) * res2_g[i*M+j] );
 
     mim_g[i*M+j] = sim_g[_i*dims->imW + _j];
 

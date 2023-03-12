@@ -13,8 +13,10 @@ App::App()
 
     vector<string> source_files{"mandel.cl"}; // this time importing its own deps
     vector<string> kernel_names{"escape_iter", "escape_iter_fpn", "min_prox", 
-                                "orbit_trap", "map_img", "apply_log_int", 
-                                "apply_log_fpn", "pack", "pack_norm",
+                                "orbit_trap", "orbit_trap_re", "orbit_trap_im",
+                                "map_img", "map_img2",
+                                "apply_log_int", "apply_log_fpn", 
+                                "pack", "pack_norm",
                                 "map_sines"};
     string ocl_include_path = filesystem::current_path(); // include path required for cl file importing own deps
     ecl.load_kernels(source_files, kernel_names, "-I "+ocl_include_path);
@@ -64,6 +66,26 @@ void App::min_prox(SynchronisedArray<double> *prox, int PROXTYPE)
 
 }
 
+void App::orbit_trap(SynchronisedArray<double> *prox, FPN bb, FPN bt, FPN bl, FPN br, int real)
+{
+    if (compute_enabled)
+    {
+        running_gpu_job = true;
+
+        SynchronisedArray<Box> box(ecl.context);
+        box[0] = {bb, bt, bl, br};
+
+        if (real)
+        {
+            ecl.apply_kernel("orbit_trap_re", *prox, *param, box);
+        } else {
+            ecl.apply_kernel("orbit_trap_im", *prox, *param, box);
+        }
+        
+    }
+
+}
+
 void App::fields_to_RGB(bool norm = false)
 {
     if (compute_enabled)
@@ -90,6 +112,26 @@ void App::map_sines(FPN f1, FPN f2, FPN f3)
         freqs[0] = {f1, f2, f3};
 
         ecl.apply_kernel("map_sines", *prox1, *pix, freqs);
+
+    }
+}
+
+void App::map_img()
+{
+    if (compute_enabled)
+    {
+        running_gpu_job = true;
+
+        SynchronisedArray<Pixel> test(ecl.context, CL_MEM_READ_ONLY, {2,2});
+        test[0,0] = {255, 0, 0};
+        test[0,1] = {0, 255, 0};
+        test[1,0] = {0, 0, 255};
+        test[1,1] = {0, 0, 0};
+
+        SynchronisedArray<ImDims> dims(ecl.context, CL_MEM_READ_ONLY);
+        dims[0] = {2,2};
+
+        ecl.apply_kernel("map_img2", *prox1, *prox2, test, *pix, dims);
 
     }
 }
@@ -209,6 +251,18 @@ void App::controlls_tab()
                 map_sines(f1, f2, f3);
                 break;
             }
+            case ComputeMode::DualField:
+            {
+                static int field_x = 0;
+                static int ptx = 1;
+                handle_field("X Field", prox1, &field_x, &ptx);
+                static int field_y = 0;
+                static int pty = 1;
+                handle_field("Y Field", prox2, &field_y, &pty);
+
+                map_img();
+                break;
+            }
             case ComputeMode::TriField:
             {
                 static int field_1 = 0;
@@ -235,9 +289,9 @@ void App::controlls_tab()
     ImGui::End();
 }
 
-void App::handle_field(string field_name, SynchronisedArray<double> *prox, int *field, int *proxtype)
+void App::handle_field(string field_name, SynchronisedArray<double> *prox, int *field, int *type)
 {
-    ImGui::Combo(field_name.c_str(), field, "Iters\0Proximity\0\0");
+    ImGui::Combo(field_name.c_str(), field, "Iters\0Proximity\0Orbit trap\0\0");
 
     switch(*field)
     {
@@ -247,13 +301,21 @@ void App::handle_field(string field_name, SynchronisedArray<double> *prox, int *
         case 1:
         {
             string fn = field_name+" PROXTYPE"; // sliders seem to get linked if they do not have unique names
-            ImGui::SliderInt(fn.c_str(), proxtype, 1, 7);
+            ImGui::SliderInt(fn.c_str(), type, 1, 7);
 
-            min_prox(prox, *proxtype);
+            min_prox(prox, *type);
             break;
 
         }
-            
+        case 2:
+        {
+            string fn = field_name+" IS REAL"; // sliders seem to get linked if they do not have unique names
+            ImGui::SliderInt(fn.c_str(), type, 0, 1);
+
+            orbit_trap(prox, 0, 0.5, 0, 0.5, *type);
+            break;
+
+        } 
         default:
             ImGui::Text("Selected field not implemented.");
             break;
