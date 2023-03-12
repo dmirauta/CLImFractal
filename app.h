@@ -43,6 +43,17 @@ class Texture
 
 enum ComputeMode { SingleField = 0, DualField = 1, TriField = 2 };
 
+struct CompUIState {
+    int field = 0;
+    int proxtype = 1;
+    bool real = false;
+     // unfortunately cannot just use Box struct, since imgui sliders work on float
+    float box_bot = 0;
+    float box_top = 0.5;
+    float box_left = 0;
+    float box_right = 0.5;
+};
+
 class App 
 {
     public:
@@ -73,17 +84,17 @@ class App
         App();
         ~App();
 
-        // job types
+        // gpu jobs
         void min_prox(SynchronisedArray<double> *prox, int PROXTYPE);
         void escape_iter(SynchronisedArray<double> *prox);
-        void orbit_trap(SynchronisedArray<double> *prox, FPN bb, FPN bt, FPN bl, FPN br, int real);
-        void fields_to_RGB(bool normalise);
+        void orbit_trap(SynchronisedArray<double> *prox, float bb, float bt, float bl, float br, bool real);
         void map_sines(FPN f1, FPN f2, FPN f3);
         void map_img();
-
+        void fields_to_RGB(bool normalise);
+        
         void compute_join();
         void render();
         void show_viewport();
         void controlls_tab();
-        void handle_field(string field_name, SynchronisedArray<double> *prox, int *field, int *proxtype);
+        void handle_field(string field_name, SynchronisedArray<double> *prox, CompUIState *state);
 };

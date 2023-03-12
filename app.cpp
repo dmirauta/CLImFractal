@@ -4,6 +4,9 @@
 #include "app.h"
 #include "imgui.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 std::string App::title = "CLImFractal";
 
 App::App()
@@ -66,40 +69,24 @@ void App::min_prox(SynchronisedArray<double> *prox, int PROXTYPE)
 
 }
 
-void App::orbit_trap(SynchronisedArray<double> *prox, FPN bb, FPN bt, FPN bl, FPN br, int real)
+void App::orbit_trap(SynchronisedArray<double> *prox, float bb, float bt, float bl, float br, bool real)
 {
     if (compute_enabled)
     {
         running_gpu_job = true;
 
-        SynchronisedArray<Box> box(ecl.context);
-        box[0] = {bb, bt, bl, br};
+        SynchronisedArray<Box> _box(ecl.context);
+        _box[0] = {bb, bt, bl, br};
 
         if (real)
         {
-            ecl.apply_kernel("orbit_trap_re", *prox, *param, box);
+            ecl.apply_kernel("orbit_trap_re", *prox, *param, _box);
         } else {
-            ecl.apply_kernel("orbit_trap_im", *prox, *param, box);
+            ecl.apply_kernel("orbit_trap_im", *prox, *param, _box);
         }
         
     }
 
-}
-
-void App::fields_to_RGB(bool norm = false)
-{
-    if (compute_enabled)
-    {
-        running_gpu_job = true;
-
-        if (norm)
-        {
-            ecl.apply_kernel("pack_norm", *prox1, *prox2, *prox3, *pix);
-        } else {
-            // should still normalise individual fields here
-            ecl.apply_kernel("pack", *prox1, *prox2, *prox3, *pix);
-        }
-    }
 }
 
 void App::map_sines(FPN f1, FPN f2, FPN f3)
@@ -122,17 +109,44 @@ void App::map_img()
     {
         running_gpu_job = true;
 
-        SynchronisedArray<Pixel> test(ecl.context, CL_MEM_READ_ONLY, {2,2});
-        test[0,0] = {255, 0, 0};
-        test[0,1] = {0, 255, 0};
-        test[1,0] = {0, 0, 255};
-        test[1,1] = {0, 0, 0};
+        int w;
+        int h;
+        int comp;
+        unsigned char* image = stbi_load("test.png", &w, &h, &comp, STBI_rgb);
+
+        SynchronisedArray<Pixel> img(ecl.context, CL_MEM_READ_ONLY, {w,h});
+        for(int i=0; i<w; i++)
+        {
+            for(int j=0; j<h; j++)
+            {
+                int k = j*w+i;
+                img[i,j] = {image[3*k], image[3*k+1], image[3*k+2]};
+            }   
+        }
 
         SynchronisedArray<ImDims> dims(ecl.context, CL_MEM_READ_ONLY);
-        dims[0] = {2,2};
+        dims[0] = {w,h};
 
-        ecl.apply_kernel("map_img2", *prox1, *prox2, test, *pix, dims);
+        ecl.apply_kernel("map_img2", *prox1, *prox2, img, *pix, dims);
 
+        delete image;
+
+    }
+}
+
+void App::fields_to_RGB(bool norm = false)
+{
+    if (compute_enabled)
+    {
+        running_gpu_job = true;
+
+        if (norm)
+        {
+            ecl.apply_kernel("pack_norm", *prox1, *prox2, *prox3, *pix);
+        } else {
+            // should still normalise individual fields here
+            ecl.apply_kernel("pack", *prox1, *prox2, *prox3, *pix);
+        }
     }
 }
 
@@ -237,9 +251,8 @@ void App::controlls_tab()
         {
             case ComputeMode::SingleField:
             {
-                static int field = 0;
-                static int pt = 1;
-                handle_field("Field", prox1, &field, &pt);
+                static CompUIState state;
+                handle_field("Field", prox1, &state);
 
                 static float f1 = 1;
                 static float f2 = 2;
@@ -253,27 +266,22 @@ void App::controlls_tab()
             }
             case ComputeMode::DualField:
             {
-                static int field_x = 0;
-                static int ptx = 1;
-                handle_field("X Field", prox1, &field_x, &ptx);
-                static int field_y = 0;
-                static int pty = 1;
-                handle_field("Y Field", prox2, &field_y, &pty);
+                static CompUIState stateX;
+                handle_field("X Field", prox1, &stateX);
+                static CompUIState stateY;
+                handle_field("Y Field", prox2, &stateY);
 
                 map_img();
                 break;
             }
             case ComputeMode::TriField:
             {
-                static int field_1 = 0;
-                static int pt1 = 1;
-                handle_field("R Field", prox1, &field_1, &pt1);
-                static int field_2 = 0;
-                static int pt2 = 1;
-                handle_field("G Field", prox2, &field_2, &pt2);
-                static int field_3 = 0;
-                static int pt3 = 1;
-                handle_field("B Field", prox3, &field_3, &pt3);
+                static CompUIState stateR;
+                handle_field("R Field", prox1, &stateR);
+                static CompUIState stateG;
+                handle_field("G Field", prox2, &stateG);
+                static CompUIState stateB;
+                handle_field("B Field", prox3, &stateB);
 
                 static bool nc = false;
                 ImGui::Checkbox("Normalise colors", &nc);
@@ -289,11 +297,11 @@ void App::controlls_tab()
     ImGui::End();
 }
 
-void App::handle_field(string field_name, SynchronisedArray<double> *prox, int *field, int *type)
+void App::handle_field(string field_name, SynchronisedArray<double> *prox, CompUIState *state)
 {
-    ImGui::Combo(field_name.c_str(), field, "Iters\0Proximity\0Orbit trap\0\0");
+    ImGui::Combo(field_name.c_str(), &state->field, "Iters\0Proximity\0Orbit trap\0\0");
 
-    switch(*field)
+    switch(state->field)
     {
         case 0:
             escape_iter(prox);
@@ -301,18 +309,23 @@ void App::handle_field(string field_name, SynchronisedArray<double> *prox, int *
         case 1:
         {
             string fn = field_name+" PROXTYPE"; // sliders seem to get linked if they do not have unique names
-            ImGui::SliderInt(fn.c_str(), type, 1, 7);
+            ImGui::SliderInt(fn.c_str(), &state->proxtype, 1, 7);
 
-            min_prox(prox, *type);
+            min_prox(prox, state->proxtype);
             break;
 
         }
         case 2:
         {
             string fn = field_name+" IS REAL"; // sliders seem to get linked if they do not have unique names
-            ImGui::SliderInt(fn.c_str(), type, 0, 1);
+            ImGui::Checkbox(fn.c_str(), &state->real);
 
-            orbit_trap(prox, 0, 0.5, 0, 0.5, *type);
+            ImGui::SliderFloat("trap bot",   &state->box_bot,   -2,2); // linking may actually be desired here
+            ImGui::SliderFloat("trap top",   &state->box_top,   -2,2);
+            ImGui::SliderFloat("trap left",  &state->box_left,  -2,2);
+            ImGui::SliderFloat("trap right", &state->box_right, -2,2);
+
+            orbit_trap(prox, state->box_bot, state->box_top, state->box_left, state->box_right, state->real);
             break;
 
         } 
