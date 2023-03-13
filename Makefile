@@ -17,7 +17,7 @@
 EXE = fractalgui
 IMGUI_DIR = ../imgui
 OPENCL_INCLUDE_PATH = /opt/rocm-5.2.3/include
-SOURCES = main.cpp app.cpp
+SOURCES = src/main.cpp src/app.cpp
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
@@ -71,20 +71,23 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-%.o:%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+%.o:src/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o build/$@ $<
 
 %.o:$(IMGUI_DIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o build/$@ $<
 
 %.o:$(IMGUI_DIR)/backends/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) $(CXXFLAGS) -c -o build/$@ $<
 
 all: $(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
 $(EXE): $(OBJS)
-	$(CXX) -o $@ $^ $(CXXFLAGS) $(LIBS)
+	$(CXX) -o $@ $(addprefix build/, $^) $(CXXFLAGS) $(LIBS)
+
+test:
+	echo $(OBJS)
 
 clean:
 	rm -f $(EXE) $(OBJS)

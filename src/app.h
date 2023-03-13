@@ -7,7 +7,7 @@
 // using namespace std::chrono;
 
 #include "easy_cl.hpp"
-#include "mandelstructs.h"
+#include "../mandelstructs.h"
 
 using namespace std;
 
