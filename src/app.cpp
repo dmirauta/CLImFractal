@@ -1,5 +1,7 @@
-#include <filesystem>
 #include <cmath>
+#include <regex>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #include "app.h"
 #include "imgui.h"
@@ -21,7 +23,7 @@ App::App()
                                 "apply_log_int", "apply_log_fpn", 
                                 "pack", "pack_norm",
                                 "map_sines"};
-    string ocl_include_path = filesystem::current_path(); // include path required for cl file importing own deps
+    string ocl_include_path = fs::current_path(); // include path required for cl file importing own deps
     ecl.load_kernels(source_files, kernel_names, "-I "+ocl_include_path);
     ecl.no_block = true;
 
@@ -30,6 +32,20 @@ App::App()
     prox3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     pix   = new SynchronisedArray<Pixel>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     param = new SynchronisedArray<FParam>(ecl.context);
+
+    for (const auto & entry : fs::directory_iterator("mimg"))
+    {
+        string s = entry.path();
+        regex r(".*\\.(?:png|jpg)");
+        smatch m;
+        if (regex_search(s, m, r))
+        {
+            mimgs.push_back(s);
+            migs_opts += s;
+            migs_opts.push_back('\0');
+        }
+    }
+    migs_opts.push_back('\0');
 
 }
 
@@ -103,7 +119,7 @@ void App::map_sines(FPN f1, FPN f2, FPN f3)
     }
 }
 
-void App::map_img()
+void App::map_img(string img_file)
 {
     if (compute_enabled)
     {
@@ -112,7 +128,10 @@ void App::map_img()
         int w;
         int h;
         int comp;
-        unsigned char* image = stbi_load("test.png", &w, &h, &comp, STBI_rgb);
+        unsigned char* image = stbi_load(img_file.c_str(), &w, &h, &comp, STBI_rgb);
+
+        // if (comp!=3)                                                  // STBI_rgb should ensure this?
+        //     cout << "Warning: Expecting an RGB image (3 channels, got " << comp <<")\n"; // may well crash after this
 
         SynchronisedArray<Pixel> img(ecl.context, CL_MEM_READ_ONLY, {w,h});
         for(int i=0; i<w; i++)
@@ -266,12 +285,16 @@ void App::controlls_tab()
             }
             case ComputeMode::DualField:
             {
+                
+                static int file_idx = 0;
+                ImGui::Combo("Mimg", &file_idx, migs_opts.c_str());
+
                 static CompUIState stateX;
                 handle_field("X Field", prox1, &stateX);
                 static CompUIState stateY;
                 handle_field("Y Field", prox2, &stateY);
 
-                map_img();
+                map_img(mimgs[file_idx]);
                 break;
             }
             case ComputeMode::TriField:

@@ -60,6 +60,8 @@ class App
         int N;
         int M;
         static string title;
+        vector<string> mimgs;
+        string migs_opts = "";
 
         Texture viewport;
         // unsigned char * pix;
@@ -89,7 +91,7 @@ class App
         void escape_iter(SynchronisedArray<double> *prox);
         void orbit_trap(SynchronisedArray<double> *prox, float bb, float bt, float bl, float br, bool real);
         void map_sines(FPN f1, FPN f2, FPN f3);
-        void map_img();
+        void map_img(string img_file);
         void fields_to_RGB(bool normalise);
         
         void compute_join();
