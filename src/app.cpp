@@ -53,7 +53,7 @@ App::~App()
     delete param;
 }
 
-void App::compile_kernels(string new_func)
+bool App::compile_kernels(string new_func)
 {
     vector<string> source_files{"mandelstructs.h", "mandelutils.c", "mandel.cl"};
     vector<string> kernel_names{"escape_iter", "escape_iter_fpn", "min_prox", 
@@ -62,11 +62,11 @@ void App::compile_kernels(string new_func)
                                 "apply_log_int", "apply_log_fpn", 
                                 "pack", "pack_norm",
                                 "map_sines"};
-    ecl.load_kernels(source_files, 
-                     kernel_names, 
-                     "-I "+string(fs::current_path())+" -D EXTERNAL_CONCAT",
-                     "//>>(.|\n)*//<<",
-                     new_func);
+    return ecl.load_kernels(source_files, 
+                            kernel_names, 
+                            "-I "+string(fs::current_path())+" -D EXTERNAL_CONCAT",
+                            "//>>(.|\n)*//<<",
+                            new_func);
 }
 
 void App::escape_iter(SynchronisedArray<double> *prox)
@@ -265,14 +265,29 @@ void App::controlls_tab()
         ImGui::Text("Pan: Right click and drag in viewport");
         ImGui::Text("Zoom: Mouse wheel");
 
-        ImGui::Text("\nGeneral Params:");
-
         bool recompile = ImGui::Button("Recompile");
+        ImGui::SameLine(); 
+        if (ImGui::Button("Reset"))
+        {
+            strcpy(func_buff, default_func_buff.c_str());
+            compile_kernels(func_buff);
+        }
+            
 
         ImGui::InputTextMultiline("Recursed function:", &func_buff[0], func_buff_size);
 
+        static char err_message[128] = "";
+        static bool success;
+
         if (recompile)
-            compile_kernels(func_buff);
+            success = compile_kernels(func_buff);
+
+        if (success)
+            strcpy(err_message, "");
+        else
+            ImGui::Text(ecl.cl_error.c_str());
+
+        ImGui::Text("\nGeneral Params:");
 
         if (ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel))
             reset_view();
@@ -307,7 +322,7 @@ void App::controlls_tab()
         {
             case ComputeMode::SingleField:
             {
-                static CompUIState state;
+                static FieldUIState state;
                 handle_field("Field", field1, &state);
 
                 static float f1 = 1;
@@ -326,9 +341,9 @@ void App::controlls_tab()
                 static int file_idx = 0;
                 ImGui::Combo("Mimg", &file_idx, migs_opts.c_str());
 
-                static CompUIState stateU;
+                static FieldUIState stateU;
                 handle_field("U Field", field1, &stateU);
-                static CompUIState stateV;
+                static FieldUIState stateV;
                 handle_field("V Field", field2, &stateV);
 
                 map_img(mimgs[file_idx]);
@@ -336,11 +351,11 @@ void App::controlls_tab()
             }
             case ComputeMode::TriField:
             {
-                static CompUIState stateR;
+                static FieldUIState stateR;
                 handle_field("R Field", field1, &stateR);
-                static CompUIState stateG;
+                static FieldUIState stateG;
                 handle_field("G Field", field2, &stateG);
-                static CompUIState stateB;
+                static FieldUIState stateB;
                 handle_field("B Field", field3, &stateB);
 
                 static bool nc = false;
@@ -356,7 +371,7 @@ void App::controlls_tab()
     ImGui::End();
 }
 
-void App::handle_field(string field_name, SynchronisedArray<double> *prox, CompUIState *state)
+void App::handle_field(string field_name, SynchronisedArray<double> *prox, FieldUIState *state)
 {
     ImGui::Combo(field_name.c_str(), &state->field, "Iters\0Proximity\0Orbit trap\0\0");
 

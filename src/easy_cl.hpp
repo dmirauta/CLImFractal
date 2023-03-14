@@ -194,6 +194,7 @@ class EasyCL
 
         bool _verbose;
         bool no_block = false;
+        std::string cl_error = "";
 
         EasyCL(bool verbose=false)
         {
@@ -229,7 +230,7 @@ class EasyCL
             }
         }
 
-        void load_kernels(std::vector<std::string> source_files,
+        bool load_kernels(std::vector<std::string> source_files,
                           std::vector<std::string> kernel_names,
                           std::string build_options="",
                           std::string re_find="", // for modification at runtime
@@ -271,9 +272,10 @@ class EasyCL
             }
 
             cl::Program program(context, sources);
-            if (program.build({device}, build_options.c_str()) != CL_SUCCESS) {
-                std::cout << "Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
-                exit(1);
+            if (program.build({device}, build_options.c_str()) != CL_SUCCESS) 
+            {
+                cl_error = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+                return false;
             }
 
             for(auto kernel_name : kernel_names)
@@ -281,6 +283,7 @@ class EasyCL
                 kernels[kernel_name] = cl::Kernel(program, kernel_name.c_str());
             }
 
+            return true;
         }
 
         template<typename... ASArrays>

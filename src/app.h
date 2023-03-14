@@ -43,7 +43,7 @@ class Texture
 
 enum ComputeMode { SingleField = 0, DualField = 1, TriField = 2 };
 
-struct CompUIState {
+struct FieldUIState {
     int field = 0;
     int proxtype = 1;
     bool real = false;
@@ -104,10 +104,10 @@ class App
         void fields_to_RGB(bool normalise);
         
         void compute_join();
-        void compile_kernels(string new_func);
+        bool compile_kernels(string new_func);
         void render();
         void reset_view();
         void show_viewport();
         void controlls_tab();
-        void handle_field(string field_name, SynchronisedArray<double> *prox, CompUIState *state);
+        void handle_field(string field_name, SynchronisedArray<double> *prox, FieldUIState *state);
 };
