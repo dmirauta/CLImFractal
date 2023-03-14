@@ -1,4 +1,7 @@
-#include "mandelstructs.h"
+
+#ifndef EXTERNAL_CONCAT
+    #include "mandelstructs.h"
+#endif
 
 // add macro to detect if gcc or opencl and use corresponding builtins?
 inline FPN _abs(FPN x)
@@ -27,11 +30,22 @@ Complex_t complex_mult(Complex_t a, Complex_t b)
     return c;
 }
 
-// function which we recurse
+Complex_t complex_pow(Complex_t z, int n)
+{
+    Complex_t p = z;
+    for(int i=1; i<n;i++)
+    {
+        p = complex_mult(p, z);
+    }
+    return p;
+}
+
+//>> function which we recurse
 inline Complex_t f(Complex_t z, Complex_t c)
 {
-    return complex_add(complex_mult(z, z), c);
+    return complex_add(complex_pow(z, 2), c);
 }
+//<<
 
 int in_circle(Complex_t z, Complex_t z0, FPN r)
 {

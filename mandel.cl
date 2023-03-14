@@ -1,4 +1,7 @@
-#include "mandelutils.c"
+
+#ifndef EXTERNAL_CONCAT
+    #include "mandelutils.c"
+#endif
 
 __kernel void apply_log_int(__global int *res_g)
 {

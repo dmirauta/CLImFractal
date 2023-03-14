@@ -16,20 +16,16 @@ App::App()
     N = 600;
     M = 800;
 
-    vector<string> source_files{"mandel.cl"}; // this time importing its own deps
-    vector<string> kernel_names{"escape_iter", "escape_iter_fpn", "min_prox", 
-                                "orbit_trap", "orbit_trap_re", "orbit_trap_im",
-                                "map_img", "map_img2",
-                                "apply_log_int", "apply_log_fpn", 
-                                "pack", "pack_norm",
-                                "map_sines"};
-    string ocl_include_path = fs::current_path(); // include path required for cl file importing own deps
-    ecl.load_kernels(source_files, kernel_names, "-I "+ocl_include_path);
+    strcpy(func_buff, default_func_buff.c_str());
+
+    // ecl._verbose = true;
+    compile_kernels("");
     ecl.no_block = true;
 
-    prox1 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
-    prox2 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
-    prox3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+
+    field1 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+    field2 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
+    field3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     pix   = new SynchronisedArray<Pixel>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     param = new SynchronisedArray<FParam>(ecl.context);
 
@@ -52,10 +48,26 @@ App::App()
 App::~App()
 {
     delete pix;
-    delete prox1;
-    delete prox2;
-    delete prox3;
+    delete field1;
+    delete field2;
+    delete field3;
     delete param;
+}
+
+void App::compile_kernels(string new_func)
+{
+    vector<string> source_files{"mandelstructs.h", "mandelutils.c", "mandel.cl"};
+    vector<string> kernel_names{"escape_iter", "escape_iter_fpn", "min_prox", 
+                                "orbit_trap", "orbit_trap_re", "orbit_trap_im",
+                                "map_img", "map_img2",
+                                "apply_log_int", "apply_log_fpn", 
+                                "pack", "pack_norm",
+                                "map_sines"};
+    ecl.load_kernels(source_files, 
+                     kernel_names, 
+                     "-I "+string(fs::current_path())+" -D EXTERNAL_CONCAT",
+                     "//>>(.|\n)*//<<",
+                     new_func);
 }
 
 void App::escape_iter(SynchronisedArray<double> *prox)
@@ -114,7 +126,7 @@ void App::map_sines(FPN f1, FPN f2, FPN f3)
         SynchronisedArray<Freqs> freqs(ecl.context);
         freqs[0] = {f1, f2, f3};
 
-        ecl.apply_kernel("map_sines", *prox1, *pix, freqs);
+        ecl.apply_kernel("map_sines", *field1, *pix, freqs);
 
     }
 }
@@ -146,7 +158,7 @@ void App::map_img(string img_file)
         SynchronisedArray<ImDims> dims(ecl.context, CL_MEM_READ_ONLY);
         dims[0] = {w,h};
 
-        ecl.apply_kernel("map_img2", *prox1, *prox2, img, *pix, dims);
+        ecl.apply_kernel("map_img2", *field1, *field2, img, *pix, dims);
 
         delete image;
 
@@ -161,10 +173,10 @@ void App::fields_to_RGB(bool norm = false)
 
         if (norm)
         {
-            ecl.apply_kernel("pack_norm", *prox1, *prox2, *prox3, *pix);
+            ecl.apply_kernel("pack_norm", *field1, *field2, *field3, *pix);
         } else {
             // should still normalise individual fields here
-            ecl.apply_kernel("pack", *prox1, *prox2, *prox3, *pix);
+            ecl.apply_kernel("pack", *field1, *field2, *field3, *pix);
         }
     }
 }
@@ -238,6 +250,14 @@ void App::controlls_tab()
         ImGui::Text("Zoom: Mouse wheel");
 
         ImGui::Text("\nGeneral Params:");
+
+        bool recompile = ImGui::Button("Recompile");
+
+        ImGui::InputTextMultiline("Recursed function:", &func_buff[0], func_buff_size);
+
+        if (recompile)
+            compile_kernels(func_buff);
+
         ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel);
 
         if (!mandel)
@@ -271,15 +291,15 @@ void App::controlls_tab()
             case ComputeMode::SingleField:
             {
                 static CompUIState state;
-                handle_field("Field", prox1, &state);
+                handle_field("Field", field1, &state);
 
                 static float f1 = 1;
                 static float f2 = 2;
                 static float f3 = 3;
                 ImGui::Text("Cmap frequencies:");
-                ImGui::SliderFloat("f1", &f1, 0.1, 10);
-                ImGui::SliderFloat("f2", &f2, 0.1, 10);
-                ImGui::SliderFloat("f3", &f3, 0.1, 10);
+                ImGui::SliderFloat("f1", &f1, 0.01, 100); // make logarithmic?
+                ImGui::SliderFloat("f2", &f2, 0.01, 100);
+                ImGui::SliderFloat("f3", &f3, 0.01, 100);
                 map_sines(f1, f2, f3);
                 break;
             }
@@ -289,10 +309,10 @@ void App::controlls_tab()
                 static int file_idx = 0;
                 ImGui::Combo("Mimg", &file_idx, migs_opts.c_str());
 
-                static CompUIState stateX;
-                handle_field("X Field", prox1, &stateX);
-                static CompUIState stateY;
-                handle_field("Y Field", prox2, &stateY);
+                static CompUIState stateU;
+                handle_field("U Field", field1, &stateU);
+                static CompUIState stateV;
+                handle_field("V Field", field2, &stateV);
 
                 map_img(mimgs[file_idx]);
                 break;
@@ -300,11 +320,11 @@ void App::controlls_tab()
             case ComputeMode::TriField:
             {
                 static CompUIState stateR;
-                handle_field("R Field", prox1, &stateR);
+                handle_field("R Field", field1, &stateR);
                 static CompUIState stateG;
-                handle_field("G Field", prox2, &stateG);
+                handle_field("G Field", field2, &stateG);
                 static CompUIState stateB;
-                handle_field("B Field", prox3, &stateB);
+                handle_field("B Field", field3, &stateB);
 
                 static bool nc = false;
                 ImGui::Checkbox("Normalise colors", &nc);
@@ -315,7 +335,6 @@ void App::controlls_tab()
                 ImGui::Text("Selected mode not implemented.");
                 break;
         }
-
 
     ImGui::End();
 }

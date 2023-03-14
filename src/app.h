@@ -67,21 +67,30 @@ class App
         // unsigned char * pix;
 
         EasyCL ecl;
-        SynchronisedArray<double>  *prox1;
-        SynchronisedArray<double>  *prox2;
-        SynchronisedArray<double>  *prox3;
+        SynchronisedArray<double>  *field1;
+        SynchronisedArray<double>  *field2;
+        SynchronisedArray<double>  *field3;
         SynchronisedArray<FParam>  *param;
         SynchronisedArray<Pixel>   *pix;
 
         Complex viewport_center = {-0.75, 0};
         Complex viewport_deltas = {1.25, 1};
-        int MAXITER;
+        int MAXITER = 100;
         int compute_mode = ComputeMode::SingleField;
         float MAXITERpow = 2, cre=-0.85, cim=0.6;
         bool mandel = true;
 
         bool compute_enabled = false;
         bool running_gpu_job = false;
+
+        
+        string default_func_buff = "inline Complex_t f(Complex_t z, Complex_t c)\n\
+{\n\
+    return complex_add(complex_pow(z, 2), c);\n\
+}";
+
+        const static size_t func_buff_size = 256;
+        char func_buff[func_buff_size];
 
         App();
         ~App();
@@ -95,6 +104,7 @@ class App
         void fields_to_RGB(bool normalise);
         
         void compute_join();
+        void compile_kernels(string new_func);
         void render();
         void show_viewport();
         void controlls_tab();

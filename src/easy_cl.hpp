@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include <regex>
 
 #ifdef __APPLE__
     #include <OpenCL/cl.hpp>
@@ -230,7 +231,9 @@ class EasyCL
 
         void load_kernels(std::vector<std::string> source_files,
                           std::vector<std::string> kernel_names,
-                          std::string build_options="")
+                          std::string build_options="",
+                          std::string re_find="", // for modification at runtime
+                          std::string re_replace="")
         // based on https://github.com/Dakkers/OpenCL-examples/blob/master/example01/main.cpp
         {
             cl::Program::Sources sources; // cannot actually push_back multiple sources to this?
@@ -248,7 +251,14 @@ class EasyCL
                 std::stringstream buffer;
                 buffer << input_stream.rdbuf();
 
-                kernel_code += buffer.str();
+                if (re_replace=="")
+                {
+                    kernel_code += buffer.str();
+                } else {
+                    kernel_code += std::regex_replace(buffer.str(), std::regex(re_find), re_replace);
+                }
+                
+
             }
             sources.push_back({kernel_code.c_str(), kernel_code.length()});
 
