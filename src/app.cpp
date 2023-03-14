@@ -22,7 +22,6 @@ App::App()
     compile_kernels("");
     ecl.no_block = true;
 
-
     field1 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     field2 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
     field3 = new SynchronisedArray<double>(ecl.context, CL_MEM_WRITE_ONLY, {N, M});
@@ -201,6 +200,19 @@ void App::render()
 
 }
 
+void App::reset_view()
+{
+    if (mandel)
+    {
+        viewport_center = {-0.75, 0};
+        viewport_deltas = {1.25, 1.25};
+    } else {
+        viewport_center = {0, 0};
+        viewport_deltas = {2, 2};
+    }
+    
+}
+
 void App::show_viewport()
 {
     viewport.set(pix->cpu_buff, M, N);
@@ -223,16 +235,20 @@ void App::show_viewport()
         // Zoom
         if (io.MouseWheel > 0)
         {
-            viewport_deltas.re /= 1.07;
-            viewport_deltas.im /= 1.07;
+            viewport_deltas.re /= 1.1;
+            viewport_deltas.im /= 1.1;
         } else if (io.MouseWheel < 0) {
-            viewport_deltas.re *= 1.07;
-            viewport_deltas.im *= 1.07;
+            viewport_deltas.re *= 1.1;
+            viewport_deltas.im *= 1.1;
         }
 
         ImGui::Text("FPS %f (currently copying frames from OpenCL -> RAM -> OpenGL)", ImGui::GetIO().Framerate);
         ImGui::Text("Center: (%lg) + (%lg)i", viewport_center.re, viewport_center.im);
         ImGui::Text("Box dims: (%lg) x (%lg)", 2*viewport_deltas.re, 2*viewport_deltas.im);
+
+        if (ImGui::Button("Reset view"))
+            reset_view();
+
         ImGui::Image((void*)(intptr_t)viewport.tex_id, ImVec2(M, N));
 
     ImGui::End();
@@ -258,7 +274,8 @@ void App::controlls_tab()
         if (recompile)
             compile_kernels(func_buff);
 
-        ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel);
+        if (ImGui::Checkbox("Compute mandelbrot (else Julia)", &mandel))
+            reset_view();
 
         if (!mandel)
         {

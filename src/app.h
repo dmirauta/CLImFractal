@@ -74,7 +74,7 @@ class App
         SynchronisedArray<Pixel>   *pix;
 
         Complex viewport_center = {-0.75, 0};
-        Complex viewport_deltas = {1.25, 1};
+        Complex viewport_deltas = {1.25, 1.25};
         int MAXITER = 100;
         int compute_mode = ComputeMode::SingleField;
         float MAXITERpow = 2, cre=-0.85, cim=0.6;
@@ -106,6 +106,7 @@ class App
         void compute_join();
         void compile_kernels(string new_func);
         void render();
+        void reset_view();
         void show_viewport();
         void controlls_tab();
         void handle_field(string field_name, SynchronisedArray<double> *prox, CompUIState *state);
