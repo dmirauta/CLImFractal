@@ -20,4 +20,3 @@ The `IMGUI_DIR` and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, t
 * Viewport resolution selection
 * Save/load fractal compute settings
 * Arbitrary precision?
-* Other (user input) functions to iterate
