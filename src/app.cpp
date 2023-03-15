@@ -16,7 +16,7 @@ App::App()
     N = 600;
     M = 800;
 
-    strcpy(func_buff, default_func_buff.c_str());
+    strcpy(func_buff, default_recurse_func.c_str());
 
     // ecl._verbose = true;
     compile_kernels("");
@@ -269,22 +269,18 @@ void App::controlls_tab()
         ImGui::SameLine(); 
         if (ImGui::Button("Reset"))
         {
-            strcpy(func_buff, default_func_buff.c_str());
+            strcpy(func_buff, default_recurse_func.c_str());
             compile_kernels(func_buff);
         }
             
-
         ImGui::InputTextMultiline("Recursed function:", &func_buff[0], func_buff_size);
 
-        static char err_message[128] = "";
         static bool success;
 
         if (recompile)
             success = compile_kernels(func_buff);
 
-        if (success)
-            strcpy(err_message, "");
-        else
+        if (!success)
             ImGui::Text(ecl.cl_error.c_str());
 
         ImGui::Text("\nGeneral Params:");

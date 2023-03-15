@@ -84,7 +84,7 @@ class App
         bool running_gpu_job = false;
 
         
-        string default_func_buff = "inline Complex_t f(Complex_t z, Complex_t c)\n\
+        string default_recurse_func = "inline Complex_t f(Complex_t z, Complex_t c)\n\
 {\n\
     return complex_add(complex_pow(z, 2), c);\n\
 }";
