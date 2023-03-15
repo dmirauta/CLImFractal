@@ -141,8 +141,8 @@ void App::map_img(string img_file)
         int comp;
         unsigned char* image = stbi_load(img_file.c_str(), &w, &h, &comp, STBI_rgb);
 
-        // if (comp!=3)                                                  // STBI_rgb should ensure this?
-        //     cout << "Warning: Expecting an RGB image (3 channels, got " << comp <<")\n"; // may well crash after this
+        // if (comp!=3)                                                                     // STBI_rgb should ensure this?
+        //     cout << "Warning: Expecting an RGB image (3 channels, got " << comp <<")\n"; // may well crash if fewer or load wrong if greater?
 
         SynchronisedArray<Pixel> img(ecl.context, CL_MEM_READ_ONLY, {w,h});
         for(int i=0; i<w; i++)
@@ -150,7 +150,7 @@ void App::map_img(string img_file)
             for(int j=0; j<h; j++)
             {
                 int k = j*w+i;
-                img[i,j] = {image[3*k], image[3*k+1], image[3*k+2]};
+                img[i,j] = {image[3*k], image[3*k+1], image[3*k+2]};                        // <--
             }   
         }
 

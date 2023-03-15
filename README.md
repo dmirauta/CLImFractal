@@ -12,11 +12,17 @@ The files `mandel.cl`, `mandelstructs.h` and `mandelutils.c` should be kept with
 
 ## Building
 
-The `IMGUI_DIR`, `STB_DIR` (stb used for image loading) and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, then simply run `make -j <Ncores>`.
+Requirements:
+
+- Dear ImGUI
+- Stb (used for image loading)
+- GLFW (ImGUI backend)
+
+If not on global paths, the `IMGUI_DIR`, `STB_DIR` and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, then simply run `make -j <Ncores>`.
 
 ## Todo
 
 * Images seem to load flipped horizontally
 * Viewport resolution selection
-* Save/load fractal compute settings
+* Save/load sets of compute params
 * Arbitrary precision?
