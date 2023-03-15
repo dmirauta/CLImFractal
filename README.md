@@ -12,7 +12,7 @@ The files `mandel.cl`, `mandelstructs.h` and `mandelutils.c` should be kept with
 
 ## Building
 
-The `IMGUI_DIR` and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, then simply run `make -j <Ncores>`.
+The `IMGUI_DIR`, `STB_DIR` (stb used for image loading) and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, then simply run `make -j <Ncores>`.
 
 ## Todo
 
