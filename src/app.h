@@ -81,14 +81,13 @@ class App
         bool mandel = true;
 
         bool compute_enabled = false;
-        bool running_gpu_job = false;
 
         string default_recurse_func = "inline Complex_t f(Complex_t z, Complex_t c)\n\
 {\n\
     return complex_add(complex_pow(z, 2), c);\n\
 }";
 
-        const static size_t func_buff_size = 256;
+        const static size_t func_buff_size = 512;
         char func_buff[func_buff_size];
 
         App();

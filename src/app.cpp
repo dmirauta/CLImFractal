@@ -72,36 +72,24 @@ bool App::compile_kernels(string new_func)
 void App::escape_iter(SynchronisedArray<double> *prox)
 {
     if (compute_enabled)
-    {
-        running_gpu_job = true;
-
         ecl.apply_kernel("escape_iter_fpn", *prox, *param);
-        
-    }
-
 }
 
 void App::min_prox(SynchronisedArray<double> *prox, int PROXTYPE)
 {
     if (compute_enabled)
     {
-        running_gpu_job = true;
-
         SynchronisedArray<int> pt(ecl.context);
         pt[0] = PROXTYPE;
 
         ecl.apply_kernel("min_prox", *prox, *param, pt);
-        
     }
-
 }
 
 void App::orbit_trap(SynchronisedArray<double> *prox, float bb, float bt, float bl, float br, bool real)
 {
     if (compute_enabled)
     {
-        running_gpu_job = true;
-
         SynchronisedArray<Box> _box(ecl.context);
         _box[0] = {bb, bt, bl, br};
 
@@ -111,22 +99,17 @@ void App::orbit_trap(SynchronisedArray<double> *prox, float bb, float bt, float 
         } else {
             ecl.apply_kernel("orbit_trap_im", *prox, *param, _box);
         }
-        
     }
-
 }
 
 void App::map_sines(FPN f1, FPN f2, FPN f3)
 {
     if (compute_enabled)
     {
-        running_gpu_job = true;
-
         SynchronisedArray<Freqs> freqs(ecl.context);
         freqs[0] = {f1, f2, f3};
 
         ecl.apply_kernel("map_sines", *field1, *pix, freqs);
-
     }
 }
 
@@ -134,8 +117,6 @@ void App::map_img(string img_file)
 {
     if (compute_enabled)
     {
-        running_gpu_job = true;
-
         int w;
         int h;
         int comp;
@@ -160,7 +141,6 @@ void App::map_img(string img_file)
         ecl.apply_kernel("map_img2", *field1, *field2, img, *pix, dims);
 
         delete image;
-
     }
 }
 
@@ -168,8 +148,6 @@ void App::fields_to_RGB(bool norm = false)
 {
     if (compute_enabled)
     {
-        running_gpu_job = true;
-
         if (norm)
         {
             ecl.apply_kernel("pack_norm", *field1, *field2, *field3, *pix);
@@ -182,11 +160,7 @@ void App::fields_to_RGB(bool norm = false)
 
 void App::compute_join()
 {
-    if (running_gpu_job)
-    {
-        ecl.queue.finish();
-        running_gpu_job = false;
-    }       
+    ecl.queue.finish();
 }
 
 void App::render()
