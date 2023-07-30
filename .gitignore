@@ -2,3 +2,5 @@
 fractalgui
 imgui.ini
 .vscode/*
+.cache/*
+.clangd

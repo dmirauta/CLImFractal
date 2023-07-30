@@ -25,8 +25,13 @@ OBJS = $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 UNAME_S := $(shell uname -s)
 LINUX_GL_LIBS = -lGL
 
-CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(OPENCL_INCLUDE_PATH) -I$(STB_DIR) -std=c++23
-CXXFLAGS += -g -Wall -Wformat
+CXXFLAGS = -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(OPENCL_INCLUDE_PATH) -I$(STB_DIR)
+CXXFLAGS += -std=c++23 -g -Wall -Wformat
+
+ifdef USE_FLOAT
+CXXFLAGS += -D USE_FLOAT # Uncomment to use float instead...
+endif
+
 LIBS = -lOpenCL
 
 ##---------------------------------------------------------------------
@@ -89,6 +94,7 @@ $(EXE): $(OBJS)
 
 test:
 	echo $(OBJS)
+	echo $(CXXFLAGS)
 
 clean:
 	rm -f $(EXE) $(OBJS)

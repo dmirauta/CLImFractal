@@ -18,11 +18,14 @@ Requirements:
 - Stb (used for image loading)
 - GLFW (ImGUI backend)
 
-If not on global paths, the `IMGUI_DIR`, `STB_DIR` and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile`, then simply run `make -j <Ncores>`.
+If not on global paths, the `IMGUI_DIR`, `STB_DIR` and `OPENCL_INCLUDE_PATH` should be updated in the `Makefile` or via arguments to make, `USE_FLOAT` may also need to be defined if your GPU does not support doubles.
+E.g.
+
+`make OPENCL_INCLUDE_PATH=/usr/include USE_FLOAT=yes -j $(nproc)`.
 
 ## Todo
 
-* Images seem to load flipped horizontally
-* Viewport resolution selection
-* Save/load sets of compute params
-* Arbitrary precision?
+- Images seem to load flipped horizontally
+- Viewport resolution selection
+- Save/load sets of compute params
+- Arbitrary precision?
