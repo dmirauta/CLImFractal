@@ -64,31 +64,27 @@ bool App::compile_kernels(string new_func) {
                           "//>>(.|\n)*//<<", new_func);
 }
 
-void App::escape_iter(SynchronisedArray<FPN> *prox) {
+void App::escape_iter(SynchronisedArray<FPN> *field) {
   if (compute_enabled)
-    ecl.apply_kernel("escape_iter_fpn", *prox, *param);
+    ecl.apply_kernel("escape_iter_fpn", *field, *param);
 }
 
-void App::min_prox(SynchronisedArray<FPN> *prox, int PROXTYPE) {
+void App::min_prox(SynchronisedArray<FPN> *field, int PROXTYPE) {
   if (compute_enabled) {
     SynchronisedArray<int> pt(ecl.context);
     pt[0] = PROXTYPE;
 
-    ecl.apply_kernel("min_prox", *prox, *param, pt);
+    ecl.apply_kernel("min_prox", *field, *param, pt);
   }
 }
 
-void App::orbit_trap(SynchronisedArray<FPN> *prox, float bb, float bt, float bl,
-                     float br, bool real) {
+void App::orbit_trap(SynchronisedArray<FPN> *field, float bb, float bt,
+                     float bl, float br, bool real) {
   if (compute_enabled) {
     SynchronisedArray<Box> _box(ecl.context);
     _box[0] = {bb, bt, bl, br};
-
-    if (real) {
-      ecl.apply_kernel("orbit_trap_re", *prox, *param, _box);
-    } else {
-      ecl.apply_kernel("orbit_trap_im", *prox, *param, _box);
-    }
+    string kernel = real ? "orbit_trap_re" : "orbit_trap_im";
+    ecl.apply_kernel(kernel, *field, *param, _box);
   }
 }
 
@@ -130,14 +126,8 @@ void App::map_img(string img_file) {
 }
 
 void App::fields_to_RGB(bool norm = false) {
-  if (compute_enabled) {
-    if (norm) {
-      ecl.apply_kernel("pack_norm", *field1, *field2, *field3, *pix);
-    } else {
-      // should still normalise individual fields here
-      ecl.apply_kernel("pack", *field1, *field2, *field3, *pix);
-    }
-  }
+  string kernel = norm ? "pack_norm" : "pack";
+  ecl.apply_kernel(kernel, *field1, *field2, *field3, *pix);
 }
 
 void App::compute_join() { ecl.queue.finish(); }
@@ -312,21 +302,21 @@ void App::controlls_tab() {
   ImGui::End();
 }
 
-void App::handle_field(string field_name, SynchronisedArray<FPN> *prox,
+void App::handle_field(string field_name, SynchronisedArray<FPN> *field,
                        FieldUIState *state) {
   ImGui::Combo(field_name.c_str(), &state->field,
                "Iters\0Proximity\0Orbit trap\0\0");
 
   switch (state->field) {
   case 0:
-    escape_iter(prox);
+    escape_iter(field);
     break;
   case 1: {
     string fn = field_name + " PROXTYPE"; // sliders seem to get linked if they
                                           // do not have unique names
     ImGui::SliderInt(fn.c_str(), &state->proxtype, 1, 7);
 
-    min_prox(prox, state->proxtype);
+    min_prox(field, state->proxtype);
     break;
   }
   case 2: {
@@ -340,7 +330,7 @@ void App::handle_field(string field_name, SynchronisedArray<FPN> *prox,
     ImGui::SliderFloat("trap left", &state->box_left, -2, 2);
     ImGui::SliderFloat("trap right", &state->box_right, -2, 2);
 
-    orbit_trap(prox, state->box_bot, state->box_top, state->box_left,
+    orbit_trap(field, state->box_bot, state->box_top, state->box_left,
                state->box_right, state->real);
     break;
   }

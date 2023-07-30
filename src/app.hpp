@@ -68,7 +68,6 @@ public:
   string migs_opts = "";
 
   Texture viewport;
-  // unsigned char * pix;
 
   EasyCL ecl;
 
